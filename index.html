@@ -5,11 +5,106 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Standardizer</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.13.1/font/bootstrap-icons.min.css" integrity="sha512-t7Few9xlddEmgd3oKZQahkNI4dS6l80+eGEzFQiqtyVYdvcSG2D3Iub77R20BdotfRPA9caaRkg1tyaJiPmO0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <link rel="stylesheet" href="/Javascript/style.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <header>
+        <nav class="navbar navbar-expand-lg bg-body-tertiary shadow-sm">
+            <div class="container-fluid">
+              <a class="navbar-brand fw-bold" href="#">
+                Standardizer
+              </a>
+              <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent">
+                <span class="navbar-toggler-icon"></span>
+              </button>
+          
+              <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-5">
+          
+                  <li class="nav-item">
+                    <a class="nav-link fw-semibold ms-5" href="#">CoA</a>
+                  </li>
+          
+                  <li class="nav-item">
+                    <a class="nav-link fw-semibold ms-5" href="#">Journal</a>
+                  </li>
+          
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle fw-semibold ms-5"
+                       href="#"
+                       role="button"
+                       data-bs-toggle="dropdown">
+                      Admin
+                    </a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="#">Users</a></li>
+                      <li><a class="dropdown-item" href="#">Settings</a></li>
+                    </ul>
+                  </li>
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                  <div class="dropdown">
+                    <a class="nav-link dropdown-toggle fw-semibold me-4"
+                       href="#"
+                       data-bs-toggle="dropdown">
+                      Standardizer Test
+                    </a>
+                  </div>
+                  <button class="btn btn-light position-relative">
+                    <i class="bi bi-bell-fill"></i>
+                  </button>
+                  <i class="bi bi-person-circle fs-4"></i>
+                </div>
+              </div>
+            </div>
+          </nav>
+    </header>
+    <main>
+        <section>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-9">
+                        <div class="mt-2">
+                            <button class="nav-btn m-1 btn btn-primary" data-page="assets">Assets</button>
+                            <button class="nav-btn m-1 btn btn-secondary" data-page="liability">Liability</button>
+                            <button class="nav-btn m-1 btn btn-secondary" data-page="equity">Equity/Capital</button>
+                            <button class="nav-btn m-1 btn btn-secondary" data-page="revenue">Revenue</button>
+                            <button class="nav-btn m-1 btn btn-secondary" data-page="cogs">CoGS</button>
+                            <button class="nav-btn m-1 btn btn-secondary" data-page="g&a">G&A Expenses</button>
+                            <button class="nav-btn m-1 btn btn-secondary" data-page="other">Other Revenue and Expense</button>
+                        </div>
+                    </div>
+                    <div class="col-1 offset-2">
+                        <div class="mt-2">
+                            <button class="btn btn-success m-1 px-3">Submit</button>
+                        </div>
+                    </div>
+                    <small class="text-end">Last Updated on Jan 12</small>
+                </div>
+            </div>
+        </section>
+        <section>
+            <div class="row">
+                <div class="col-3">
+                  <h6>Source</h6>
+                  <div id="sourceList" class="list-box"></div>
+                </div>
+                <div class="col-6">
+                  <h6>Mapping</h6>
+                  <div id="mappingArea" class="list-box"></div>
+                </div>
+                <div class="col-3">
+                  <h6>Destination</h6>
+                  <div id="destinationList" class="list-box"></div>
+                </div>
+              </div>              
+        </section>
+    </main>
     <div id="content"></div>
     <script src="/Javascript/script.js"></script>
     <script src="script.js"></script>
