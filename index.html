@@ -65,49 +65,98 @@
           </nav>
     </header>
     <main>
-        <section>
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-9">
-                        <div class="mt-2">
-                            <button class="nav-btn m-1 btn btn-primary" data-page="assets">Assets</button>
-                            <button class="nav-btn m-1 btn btn-secondary" data-page="liability">Liability</button>
-                            <button class="nav-btn m-1 btn btn-secondary" data-page="equity">Equity/Capital</button>
-                            <button class="nav-btn m-1 btn btn-secondary" data-page="revenue">Revenue</button>
-                            <button class="nav-btn m-1 btn btn-secondary" data-page="cogs">CoGS</button>
-                            <button class="nav-btn m-1 btn btn-secondary" data-page="g&a">G&A Expenses</button>
-                            <button class="nav-btn m-1 btn btn-secondary" data-page="other">Other Revenue and Expense</button>
-                        </div>
+      <section>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-9">
+                    <div class="mt-2">
+                        <button class="nav-btn m-1 btn btn-primary" data-page="assets">Assets</button>
+                        <button class="nav-btn m-1 btn btn-secondary" data-page="liability">Liability</button>
+                        <button class="nav-btn m-1 btn btn-secondary" data-page="equity">Equity/Capital</button>
+                        <button class="nav-btn m-1 btn btn-secondary" data-page="revenue">Revenue</button>
+                        <button class="nav-btn m-1 btn btn-secondary" data-page="cogs">CoGS</button>
+                        <button class="nav-btn m-1 btn btn-secondary" data-page="g&a">G&A Expenses</button>
+                        <button class="nav-btn m-1 btn btn-secondary" data-page="other">Other Revenue and Expense</button>
                     </div>
-                    <div class="col-1 offset-2">
-                        <div class="mt-2">
-                            <button class="btn btn-success m-1 px-3">Submit</button>
-                        </div>
-                    </div>
-                    <small class="text-end">Last Updated on Jan 12</small>
                 </div>
+                <div class="col-1 offset-2">
+                    <div class="mt-2">
+                        <button class="btn btn-success m-1 px-3">Submit</button>
+                    </div>
+                </div>
+                <small class="text-end">Last Updated on Jan 12</small>
             </div>
-        </section>
-        <section>
-            <div class="row mx-3">
-                <div class="col-3">
-                  <h6 class="fw-bold">Source Account Structure</h6>
-                  <div id="sourceList" class="list-box">
-                    <div class="p-2 bg-primary text-white rounded-3">Balance Sheet Accounts</div>
-                  </div>
-                </div>
-                <div class="col-6">
-                  <h6 class="fw-bold">Likely Destination Account</h6>
-                  <div id="mappingArea" class="list-box">
-                    <div class="p-2 bg-primary text-white rounded-3">Balance Sheet Accounts</div>
-                  </div>
-                </div>
-                <div class="col-3">
-                  <h6>Destination</h6>
-                  <div id="destinationList" class="list-box"></div>
-                </div>
-              </div>              
-        </section>
+        </div>
+    </section>
+    <section class="m-3">
+      <div class="row g-2">
+        <div class="heading d-flex justify-content-between col-12">
+            <div class="col-2 text-left">
+                <h6>Source Account Structure</h6>
+            </div>
+            <div class="col-6 text-center">
+                <h6>Likely Destination Account</h6>
+            </div>
+            <div class="col-3 text-center">
+                <h6>Destination Account Structure</h6>
+            </div>
+        </div>
+        <div class="col-12 col-lg-9">
+            <div class="mapping-table-section">
+                <div class="row">
+                    <div class="col-3">
+                      <!-- <h6>Source Account Structure</h6> -->
+                        <div class="bg-primary text-left text-white p-3 rounded-3">
+                            Balance Sheet Accounts
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-primary text-left text-white p-3 rounded-3">
+                            Most Likely
+                        </div>
+                    </div>
+                    <div class="col-3">
+                      <!-- <h6>Source Account Structure</h6> -->
+                        <div class="bg-primary text-left text-white p-3 rounded-3">
+                            Likely
+                        </div>
+                    </div>
+                    <div class="col-3">
+                      <!-- <h6>Source Account Structure</h6> -->
+                        <div class="bg-primary text-left text-white p-3 rounded-3">
+                            Possible
+                        </div>
+                    </div>
+                </div>  
+                <div class="table-body" id="mappingTableBody"></div>
+            </div>
+        </div>
+        <div class="col-3 dest-sidebar ps-3">
+          <!-- <h6 class="fw-bold text-truncate">Destination Account Structure</h6> -->
+          <div class="column-header text-white p-3 mb-2 rounded-3" style="background-color: #00a651;">Balance Sheet Accounts</div>
+          <div class="nav-slider-container">
+              <i class="bi bi-chevron-left slider-arrow" id="slideLeft"></i>
+               
+              <div class="nav-slider" id="navSlider">
+                  <a href="#" class="nav-item-link active" data-type="all">All</a>
+                  <a href="#" class="nav-item-link" data-type="assets">Assets</a>
+                  <a href="#" class="nav-item-link" data-type="liability">Liability</a>
+                  <a href="#" class="nav-item-link" data-type="capital">Equity/Capital</a>
+                  <a href="#" class="nav-item-link" data-type="revenue">Revenue</a>
+                  <a href="#" class="nav-item-link" data-type="cogs">CoGS</a>
+                  <a href="#" class="nav-item-link" data-type="ga">G&A Expenses</a>
+                  <a href="#" class="nav-item-link" data-type="other">Other Revenue</a>
+              </div>
+         
+              <i class="bi bi-chevron-right slider-arrow" id="slideRight"></i>
+          </div>  
+          <input type="text" id="search" class="form-control form-control-sm mb-3 mt-2 bg-light border-0" placeholder="Search...">
+         
+          <div id="a-accountContainer" class="ps-1"></div>
+
+      </div>
+    </div>
+    </section>
     </main>
     <div id="content"></div>
     <script src="/Javascript/script.js"></script>

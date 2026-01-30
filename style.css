@@ -1,0 +1,108 @@
+  /* =============================== */
+  .nav-slider-container {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #dee2e6;
+    background: #fff;
+    padding: 0 10px;
+}
+ 
+.nav-slider {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    gap: 2rem;
+    padding: 10px 0;
+}
+ 
+.nav-slider::-webkit-scrollbar {
+    display: none;
+}
+ 
+.nav-item-link {
+    text-decoration: none;
+    color: #6c757d;
+    font-weight: 500;
+    font-size: 0.9rem;
+    position: relative;
+    padding: 5px 0;
+}
+ 
+.nav-item-link.active {
+    color: #00a651;
+}
+ 
+.nav-item-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -11px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #00a651;
+}
+ 
+.slider-arrow {
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0 10px;
+}
+/* Mapping table styles */
+.mapping-row {
+    margin-bottom: 8px;
+}
+
+.source-cell {
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+}
+
+.slot-cell {
+    min-height: 50px;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6 !important;
+    transition: all 0.2s;
+}
+
+.slot-cell.drag-over {
+    background: #e7f3ff;
+    border-color: #0d6efd !important;
+    border-style: solid !important;
+}
+
+.dropped-card {
+    font-size: 14px;
+}
+
+.account-card {
+    cursor: grab;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.account-card:hover {
+    background: #f8f9fa;
+}
+
+.account-card:active {
+    cursor: grabbing;
+}
+
+#a-accountContainer {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+#mappingTableBody {
+    max-height: 65vh;
+    overflow-y: auto;
+}
