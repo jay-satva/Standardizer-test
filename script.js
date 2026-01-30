@@ -195,16 +195,16 @@ function populateLists() {
 
       row.innerHTML = `
           <div class="col-3">
-              <div class="source-cell p-2 bg-light border rounded">${acc.number} — ${acc.name}</div>
+              <div class="source-cell p-2 me-2 bg-light border rounded">${acc.number} — ${acc.name}</div>
           </div>
           <div class="col-3">
-              <div class="slot-cell p-2 border rounded" data-slot="mostLikely"></div>
+              <div class="slot-cell p-2 ms-1 me-2 border rounded" data-slot="mostLikely"></div>
           </div>
           <div class="col-3">
-              <div class="slot-cell p-2 border rounded" data-slot="likely"></div>
+              <div class="slot-cell p-2 ms-2 me-1 border rounded" data-slot="likely"></div>
           </div>
           <div class="col-3">
-              <div class="slot-cell p-2 border rounded" data-slot="possible"></div>
+              <div class="slot-cell p-2 ms-3 border rounded" data-slot="possible"></div>
           </div>
       `
 

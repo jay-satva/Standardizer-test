@@ -105,4 +105,7 @@
 #mappingTableBody {
     max-height: 65vh;
     overflow-y: auto;
+    overflow-y: auto;          
+    scrollbar-width: none;    
+    -ms-overflow-style: none;  
 }
