@@ -1,10 +1,18 @@
 const mappingState = {}
 let currentCategory = 'assets'
 const usedCards = new Set()
+let allDestinationAccounts = []
 
 if (!localStorage.getItem("isLoggedIn")) {
     window.location.href = "login.html"
 }
+
+window.addEventListener("storage", function () {
+  if (!localStorage.getItem("isLoggedIn")) {
+      alert('Session expired')
+      window.location.reload()
+  }
+})
 
 function categorizeDestinationType(accountTypeName, subAccountName) {
     const type = (accountTypeName || '').toLowerCase().trim()
@@ -193,6 +201,38 @@ function updateDestinationVisibility() {
     })
 }
 
+function renderDestinationOnly(type) {
+
+  const destList = document.getElementById("a-accountContainer")
+  if (!destList) return
+
+  destList.innerHTML = ""
+
+  const destination = JSON.parse(localStorage.getItem("destinationSheetData"))
+  if (!destination) return
+
+  const destSheet = Object.values(destination)[0]
+  if (allDestinationAccounts.length === 0) {
+    allDestinationAccounts = flattenData(destSheet)
+}
+
+  let data = []
+  if (type === "all") {
+    data = allDestinationAccounts
+} else {
+    data = allDestinationAccounts.filter(a => a.type === type)
+}
+
+
+  data.forEach(acc => {
+      const card = createCard(acc.name, acc.number, { type: acc.type })
+      destList.appendChild(card)
+  })
+
+  // updateUsedCards(currentCategory)
+  // updateDestinationVisibility()
+}
+
 function renderPage(category) {
     currentCategory = category
     
@@ -258,13 +298,15 @@ function renderPage(category) {
         renderRowFromState(category, acc.number)
     })
     
-    destAccounts.forEach(acc => {
-        const card = createCard(acc.name, acc.number, { type: acc.type })
-        destList.appendChild(card)
-    })
+    // destAccounts.forEach(acc => {
+    //     const card = createCard(acc.name, acc.number, { type: acc.type })
+    //     destList.appendChild(card)
+    // })
+    renderDestinationOnly("all")
+
     
-    updateUsedCards(category)
-    updateDestinationVisibility()
+    // updateUsedCards(category)
+    // updateDestinationVisibility()
     
     setTimeout(() => initSortable(), 100)
     updateSliderActiveState(category)
@@ -277,7 +319,8 @@ function renderRowFromState(category, sourceId) {
     const state = mappingState[category]?.[sourceId]
     if (!state) return
     
-    const destAccounts = getDestAccountsByCategory(category)
+    // const destAccounts = getDestAccountsByCategory(category)
+    const destAccounts = allDestinationAccounts
 
     row.querySelectorAll(".slot-cell").forEach(cell => {
         const slot = cell.dataset.slot
@@ -290,6 +333,7 @@ function renderRowFromState(category, sourceId) {
         
         const dropped = document.createElement("div")
         dropped.className = "dropped-card bg-white p-2 border rounded text-truncate"
+        dropped.dataset.number = destAcc.number
         dropped.innerHTML = `<b>${destAcc.number}</b> — ${destAcc.name}`
         dropped.title = `${destAcc.number} — ${destAcc.name} (Click to remove)`
         dropped.style.cursor = 'pointer'
@@ -297,8 +341,8 @@ function renderRowFromState(category, sourceId) {
         dropped.addEventListener('click', () => {
             state[slot] = null
             renderRowFromState(category, sourceId)
-            updateUsedCards(category)
-            updateDestinationVisibility()
+            // updateUsedCards(category)
+            // updateDestinationVisibility()
         })
         cell.appendChild(dropped)
     })
@@ -314,10 +358,13 @@ function initSortable() {
     
     if (typeof Sortable !== 'undefined') {
         destList.sortableInstance = new Sortable(destList, {
-            group: { name: 'accounts', pull: 'clone', put: false },
+            group: { name: 'accounts', pull: 'clone', put: true },
             animation: 150,
             sort: false,
-            onEnd: () => updateDestinationVisibility()
+            onAdd: function(evt) {
+              evt.item.remove()
+          }
+            // onEnd: () => updateDestinationVisibility()
         })
     }
     
@@ -325,53 +372,97 @@ function initSortable() {
         if (cell.sortableInstance) cell.sortableInstance.destroy()
         
         cell.sortableInstance = new Sortable(cell, {
-            group: { name: 'accounts', pull: false, put: true },
+            group: { name: 'accounts', pull: true, put: true },
             animation: 150,
-            
+            sort: true,
             onAdd: function(evt) {
-                const item = evt.item
-                const destNumber = item.dataset.number
-                const sourceRow = evt.to.closest(".mapping-row")
-                const sourceId = sourceRow.dataset.source
-                const category = sourceRow.dataset.category
-                const slot = evt.to.dataset.slot
-                
-                item.remove()
-                handleDropSortable(category, sourceId, slot, destNumber)
-            }
+
+              const item = evt.item
+              const sourceRow = evt.to.closest(".mapping-row")
+              const sourceId = sourceRow.dataset.source
+              const category = sourceRow.dataset.category
+              const slot = evt.to.dataset.slot
+          
+              let destNumber
+              if (item.classList.contains("account-card")) {
+                  destNumber = item.dataset.number
+              }
+              else if (item.classList.contains("dropped-card")) {
+                  destNumber = item.dataset.number
+                  Object.values(mappingState[category]).forEach(rowState => {
+                    Object.keys(rowState).forEach(k => {
+                        if (rowState[k] == destNumber) rowState[k] = null
+                    })
+                  })
+
+              }
+          
+              item.remove()
+          
+              handleDropSortable(category, sourceId, slot, destNumber)
+          }
+          
         })
     })
 }
 
 function handleDropSortable(category, sourceId, slot, destNumber) {
-    if (!mappingState[category]) mappingState[category] = {}
-    if (!mappingState[category][sourceId]) {
-        mappingState[category][sourceId] = {
-            mostLikely: null,
-            likely: null,
-            possible: null
-        }
-    }
-    
-    const state = mappingState[category][sourceId]
 
-    if (state.mostLikely == destNumber || state.likely == destNumber || state.possible == destNumber) { return }
+  if (!mappingState[category]) mappingState[category] = {}
 
-    if (slot === "mostLikely") {
-        state.possible = state.likely
-        state.likely = state.mostLikely
-        state.mostLikely = destNumber
-    } else if (slot === "likely") {
-        state.possible = state.likely
-        state.likely = destNumber
-    } else if (slot === "possible") {
-        state.possible = destNumber
-    }
+  if (!mappingState[category][sourceId]) {
+      mappingState[category][sourceId] = {
+          mostLikely: null,
+          likely: null,
+          possible: null
+      }
+  }
 
-    renderRowFromState(category, sourceId)
-    updateUsedCards(category)
-    updateDestinationVisibility()
+  const state = mappingState[category][sourceId]
+  if (
+    state.mostLikely == destNumber ||
+    state.likely == destNumber ||
+    state.possible == destNumber
+) {
+    alert("This destination account is already used in this row.")
+    return
 }
+
+  const order = ["mostLikely", "likely", "possible"]
+  const index = order.indexOf(slot)
+  let rightHasSpace = false
+
+  for (let i = index; i < order.length; i++) {
+      if (state[order[i]] == null) {
+          rightHasSpace = true
+          break
+      }
+  }
+
+  if (rightHasSpace) {
+
+      for (let i = order.length - 1; i > index; i--) {
+          if (state[order[i]] == null) {
+              for (let j = i; j > index; j--) {
+                  state[order[j]] = state[order[j - 1]]
+              }
+              break
+          }
+      }
+      state[slot] = destNumber
+  }
+  else {
+      for (let i = order.length - 1; i > index; i--) {
+          state[order[i]] = state[order[i - 1]]
+      }
+      state[slot] = destNumber
+  }
+
+  renderRowFromState(category, sourceId)
+  // updateUsedCards(category)
+  // updateDestinationVisibility()
+}
+
 
 function setupDestinationFilter() {
     const search = document.getElementById("search")
@@ -402,14 +493,18 @@ function setupDestinationFilter() {
     search.addEventListener("input", applyFilter)
 
     buttons.forEach(btn => {
-        btn.addEventListener("click", (e) => {
-            e.preventDefault()
-            buttons.forEach(b => b.classList.remove("active"))
-            btn.classList.add("active")
-            currentType = btn.dataset.type
-            applyFilter()
-        })
-    })
+      btn.addEventListener("click", (e) => {
+          e.preventDefault()
+  
+          buttons.forEach(b => b.classList.remove("active"))
+          btn.classList.add("active")
+  
+          currentType = btn.dataset.type
+  
+          renderDestinationOnly(currentType)
+      })
+  })
+  
     const slider = document.getElementById('navSlider')
     const leftArrow = document.getElementById('slideLeft')
     const rightArrow = document.getElementById('slideRight')
@@ -453,6 +548,13 @@ function saveAllMappings() {
     alert("Mappings saved successfully!")
 }
 
+function confirmLogout(){
+    if(confirm('Are you sure to logout?')){
+      localStorage.clear()
+      window.location.reload()
+    }
+}
+
 function loadSavedMappings() {
     const saved = localStorage.getItem("savedMappings")
     if (saved) {
@@ -460,6 +562,9 @@ function loadSavedMappings() {
         console.log("Loaded saved mappings")
     }
 }
+
+const logout = document.getElementById('logout')
+if(logout) logout.addEventListener('click', confirmLogout)
 
 function setupSubmitButton() {
     const submitBtn = document.querySelector(".btn-success")

@@ -1,7 +1,9 @@
 body{
     overflow: hidden;
 }
-
+.bi{
+    cursor: pointer;
+}
 /* =============================== */
   .nav-slider-container {
     display: flex;
