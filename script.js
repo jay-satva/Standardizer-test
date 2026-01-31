@@ -235,7 +235,7 @@ function renderDestinationOnly(type) {
 
 function renderPage(category) {
     currentCategory = category
-    
+    ensureAllDestinationAccountsLoaded()
     const table = document.getElementById("mappingTableBody")
     const destList = document.getElementById("a-accountContainer")
     
@@ -302,7 +302,7 @@ function renderPage(category) {
     //     const card = createCard(acc.name, acc.number, { type: acc.type })
     //     destList.appendChild(card)
     // })
-    renderDestinationOnly("all")
+    renderDestinationOnly(category)
 
     
     // updateUsedCards(category)
@@ -310,6 +310,15 @@ function renderPage(category) {
     
     setTimeout(() => initSortable(), 100)
     updateSliderActiveState(category)
+}
+function ensureAllDestinationAccountsLoaded() {
+  if (allDestinationAccounts.length > 0) return
+
+  const destination = JSON.parse(localStorage.getItem("destinationSheetData"))
+  if (!destination) return
+
+  const destSheet = Object.values(destination)[0]
+  allDestinationAccounts = flattenData(destSheet)
 }
 
 function renderRowFromState(category, sourceId) {
