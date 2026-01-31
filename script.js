@@ -1,23 +1,42 @@
 const mappingState = {}
+let currentCategory = 'assets'
+const usedCards = new Set()
 
 if (!localStorage.getItem("isLoggedIn")) {
     window.location.href = "login.html"
 }
 
-function convertToNested(rows) {
+function categorizeDestinationType(accountTypeName, subAccountName) {
+    const type = (accountTypeName || '').toLowerCase().trim()
+    const sub = (subAccountName || '').toLowerCase().trim()
+    if (sub.includes('professional') && sub.includes('revenue')) return 'revenue'
+    if (sub.includes('product') && sub.includes('revenue')) return 'revenue'
+    if (sub.includes('professional') && sub.includes('cost')) return 'cogs'
+    if (sub.includes('product') && sub.includes('cost')) return 'cogs'
+    if (sub.includes('labor')) return 'expense'
+    if (sub.includes('other') && (sub.includes('employee') || sub.includes('revenue') || sub.includes('expense'))) {
+        return 'other rev & exp'
+    }
+    
+    if (type.includes('asset')) return 'assets'
+    if (type.includes('liabilit')) return 'liabilities'  
+    if (type.includes('equity') || type.includes('capital')) return 'equity'  
+    if (type.includes('revenue') || type.includes('income')) return 'revenue'
+    if (type.includes('cog') || type.includes('cost of goods')) return 'cogs'
+    if (type.includes('expense')) return 'expense'  
+    console.warn('Uncategorized:', type, sub)
+    return null
+}
 
+function convertToNested(rows) {
     const result = {}
     rows.forEach(row => {
-        const type = (row.Type || "").toLowerCase()       
-        const group = (row.Group || "").toLowerCase()      
+        const type = (row.Type || "").toLowerCase().trim()
+        const group = (row.Group || "").toLowerCase().trim()
         if (!type || !group || !row.Number) return
 
-        if (!result[type]) {
-            result[type] = { group: {} }
-        }
-        if (!result[type].group[group]) {
-            result[type].group[group] = {}
-        }
+        if (!result[type]) result[type] = { group: {} }
+        if (!result[type].group[group]) result[type].group[group] = {}
 
         const items = result[type].group[group]
         const index = Object.keys(items).length
@@ -28,44 +47,27 @@ function convertToNested(rows) {
             description: row.Description
         }
     })
-
     return result
 }
 
 function convertDestinationToNested(rows) {
-
     const result = {}
-
+    
     rows.forEach(row => {
+        const type = categorizeDestinationType(row.AccountTypeName, row.SubAccountName)
+        if (!type) return
+        
+        const group = (row.SubAccountName || "").toLowerCase().trim()
 
-        let type = (row.AccountTypeName || "").toLowerCase()
-
-        if (type.includes("liab")) type = "liability"
-        if (type.includes("asset")) type = "assets"
-        if (type.includes("equity")) type = "equity/capital"
-        if (type.includes("revenue")) type = "revenue"
-        if (type.includes("cog")) type = "cogs"
-        if (type.includes("expense")) type = "g&a expenses"
-        if (type.includes("other")) type = "other revenue and expense"
-
-        const group = (row.SubAccountName || "").toLowerCase()
-
-        if (!result[type]) {
-            result[type] = { group: {} }
-        }
-
-        if (!result[type].group[group]) {
-            result[type].group[group] = {}
-        }
+        if (!result[type]) result[type] = { group: {} }
+        if (!result[type].group[group]) result[type].group[group] = {}
 
         const items = result[type].group[group]
-
         const index = Object.keys(items).length
 
         items[`item ${index}`] = {
             number: Number(row.AccountCode),
             name: row.AccountName,
-
             flags: {
                 SpecialtyEmergencyCashBasis: row.SpecialtyEmergencyCashBasis,
                 SpecialtyEmergencyAccrualBasis: row.SpecialtyEmergencyAccrualBasis,
@@ -78,262 +80,332 @@ function convertDestinationToNested(rows) {
             }
         }
     })
-
+    
     return result
 }
 
-function fetchExcel(filePath, storageKey, converterFn, done)
-{
-
+function fetchExcel(filePath, storageKey, converterFn, done) {
     const xhr = new XMLHttpRequest()
     xhr.open("GET", filePath, true)
     xhr.responseType = "arraybuffer"
     xhr.onload = function () {
-
         if (xhr.status !== 200) {
             console.error("Excel load failed:", filePath)
             if (done) done()
             return
         }
+        
         const buffer = xhr.response
         const workbook = XLSX.read(buffer, { type: "array" })
         const finalResult = {}
 
         workbook.SheetNames.forEach(sheetName => {
             const sheet = workbook.Sheets[sheetName]
-            const rows = XLSX.utils.sheet_to_json(sheet, {
-                defval: "",
-                raw: false
-            })
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false })
             const structured = converterFn(rows)
             finalResult[sheetName] = structured
         })
 
         localStorage.setItem(storageKey, JSON.stringify(finalResult))
         if (done) done()
-        console.log(storageKey, finalResult)
     }
+    
     xhr.onerror = () => {
-  console.error("XHR error")
-  if (done) done()
-}
-
+        if (done) done()
+    }
+    
     xhr.send()
 }
 
 function createCard(text, number, extra = {}) {
-  const div = document.createElement("div")
-  div.className = "account-card"
-  div.dataset.name = text.toLowerCase()
-  div.dataset.number = number
-  div.dataset.type = (extra.type || "").toLowerCase()
-
-  div.innerHTML = `
-      <b>${number}</b> — ${text}
-  `
-
-  return div
+    const div = document.createElement("div")
+    div.className = "account-card"
+    div.dataset.name = text.toLowerCase()
+    div.dataset.number = number
+    div.dataset.type = (extra.type || "").toLowerCase()
+    div.innerHTML = `<b>${number}</b> — ${text}`
+    return div
 }
+
 function flattenData(data) {
-  const list = []
+    const list = []
+    if (!data) return list
 
-  if (!data) return list
-
-  Object.keys(data).forEach(type => {
-    const groups = data[type]?.group || {}
-
-    Object.keys(groups).forEach(group => {
-      const items = groups[group] || {}
-
-      Object.values(items).forEach(item => {
-        list.push({
-          number: item.number,
-          name: item.name,
-          type: type
+    Object.keys(data).forEach(type => {
+        const groups = data[type]?.group || {}
+        Object.keys(groups).forEach(group => {
+            const items = groups[group] || {}
+            Object.values(items).forEach(item => {
+                list.push({
+                    number: item.number,
+                    name: item.name,
+                    type: type
+                })
+            })
         })
-      })
     })
-  })
-
-  return list
+    return list
 }
 
-function populateLists() {
-  const master = JSON.parse(localStorage.getItem("masterSheetData"))
-  const destination = JSON.parse(localStorage.getItem("destinationSheetData"))
-
-  if (!master || !destination) return
-  const table = document.getElementById("mappingTableBody")
-  const destList = document.getElementById("a-accountContainer")
-  
-  if (!table) {
-      console.error("mappingTableBody not found! Check your HTML.")
-      return
-  }
-  
-  if (!destList) {
-      console.error("a-accountContainer not found! Check your HTML.")
-      return
-  }
-  
-  table.innerHTML = ""
-  destList.innerHTML = ""
-
-  const masterSheet = Object.values(master)[0]
-  flattenData(masterSheet).forEach(acc => {
-
-      if (!mappingState[acc.number]) {
-          mappingState[acc.number] = {
-              mostLikely: null,
-              likely: null,
-              possible: null
-          }
-      }
-      const row = document.createElement("div")
-      row.className = "row g-2 mb-2 mapping-row"
-      row.dataset.source = acc.number
-
-      row.innerHTML = `
-          <div class="col-3">
-              <div class="source-cell p-2 me-2 bg-light border rounded">${acc.number} — ${acc.name}</div>
-          </div>
-          <div class="col-3">
-              <div class="slot-cell p-2 ms-1 me-2 border rounded" data-slot="mostLikely"></div>
-          </div>
-          <div class="col-3">
-              <div class="slot-cell p-2 ms-2 me-1 border rounded" data-slot="likely"></div>
-          </div>
-          <div class="col-3">
-              <div class="slot-cell p-2 ms-3 border rounded" data-slot="possible"></div>
-          </div>
-      `
-
-      table.appendChild(row)
-  })
-  
-  const destSheet = Object.values(destination)[0]
-  
-  flattenData(destSheet).forEach(acc => {
-      const card = createCard(acc.name, acc.number, { type: acc.type })
-      card.setAttribute("draggable", "true")
-      card.addEventListener("dragstart", (e) => {
-          e.dataTransfer.setData("text/plain", card.dataset.number)
-          e.dataTransfer.effectAllowed = "copy"
-      })
-      
-      destList.appendChild(card)
-  })
+function getSourceAccountsByCategory(category) {
+    const master = JSON.parse(localStorage.getItem("masterSheetData"))
+    if (!master) return []
+    
+    const masterSheet = Object.values(master)[0]
+    if (!masterSheet[category]) return []
+    
+    return flattenData({ [category]: masterSheet[category] })
 }
-function renderRowFromState(sourceId) {
-  const row = document.querySelector(`.mapping-row[data-source="${sourceId}"]`)
-  if (!row) return
 
-  const state = mappingState[sourceId]
-  const destination = JSON.parse(localStorage.getItem("destinationSheetData"))
-  const destSheet = Object.values(destination)[0]
-  const destAccounts = flattenData(destSheet)
-
-  row.querySelectorAll(".slot-cell").forEach(cell => {
-      const slot = cell.dataset.slot
-      cell.innerHTML = ""
-
-      const destNumber = state[slot]
-      if (!destNumber) return
-
-      const destAcc = destAccounts.find(a => a.number == destNumber)
-      if (!destAcc) return
-      
-      const dropped = document.createElement("div")
-      dropped.className = "dropped-card bg-white p-2 border rounded"
-      dropped.innerHTML = `<b>${destAcc.number}</b> — ${destAcc.name}`
-
-      cell.appendChild(dropped)
-  })
+function getDestAccountsByCategory(category) {
+    const destination = JSON.parse(localStorage.getItem("destinationSheetData"))
+    if (!destination) return []
+    
+    const destSheet = Object.values(destination)[0]
+    if (!destSheet[category]) return []
+    
+    return flattenData({ [category]: destSheet[category] })
 }
+
+function updateUsedCards(category) {
+    usedCards.clear()
+    
+    if (!mappingState[category]) return
+    
+    Object.values(mappingState[category]).forEach(state => {
+        if (state.mostLikely) usedCards.add(String(state.mostLikely))
+        if (state.likely) usedCards.add(String(state.likely))
+        if (state.possible) usedCards.add(String(state.possible))
+    })
+}
+
+function updateDestinationVisibility() {
+    const destList = document.getElementById("a-accountContainer")
+    if (!destList) return
+    
+    destList.querySelectorAll(".account-card").forEach(card => {
+        const cardNumber = String(card.dataset.number)
+        if (usedCards.has(cardNumber)) {
+            card.style.display = 'none'
+        } else {
+            card.style.display = ''
+        }
+    })
+}
+
+function renderPage(category) {
+    currentCategory = category
+    
+    const table = document.getElementById("mappingTableBody")
+    const destList = document.getElementById("a-accountContainer")
+    
+    if (!table || !destList) {
+        return
+    }
+    
+    table.innerHTML = ""
+    destList.innerHTML = ""
+    
+    const sourceAccounts = getSourceAccountsByCategory(category)
+    const destAccounts = getDestAccountsByCategory(category)
+    
+    console.log(`Rendering ${category}:`, {
+        source: sourceAccounts.length,
+        dest: destAccounts.length
+    })
+    
+    if (sourceAccounts.length === 0) {
+        table.innerHTML = `<div class="alert alert-warning m-3">No source accounts for <b>${category}</b></div>`
+    }
+    
+    if (destAccounts.length === 0) {
+        destList.innerHTML = `<div class="alert alert-warning m-2 text-center">No destination accounts</div>`
+    }
+    
+    if (!mappingState[category]) {
+        mappingState[category] = {}
+    }
   
-  
-  function initDragDrop() {
+    sourceAccounts.forEach(acc => {
+        if (!mappingState[category][acc.number]) {
+            mappingState[category][acc.number] = {
+                mostLikely: null,
+                likely: null,
+                possible: null
+            }
+        }
+        
+        const row = document.createElement("div")
+        row.className = "row g-2 mb-2 mapping-row"
+        row.dataset.source = acc.number
+        row.dataset.category = category
+
+        row.innerHTML = `
+        <div class="col-3">
+        <div class="source-cell p-2 me-2 bg-light border rounded">${acc.number} — ${acc.name}</div>
+        </div>
+        <div class="col-3">
+            <div class="slot-cell p-2 ms-1 me-2 border rounded" data-slot="mostLikely"></div>
+        </div>
+        <div class="col-3">
+            <div class="slot-cell p-2 ms-2 me-1 border rounded" data-slot="likely"></div>
+        </div>
+        <div class="col-3">
+            <div class="slot-cell p-2 ms-3 border rounded" data-slot="possible"></div>
+        </div>
+        `
+        table.appendChild(row)
+        renderRowFromState(category, acc.number)
+    })
+    
+    destAccounts.forEach(acc => {
+        const card = createCard(acc.name, acc.number, { type: acc.type })
+        destList.appendChild(card)
+    })
+    
+    updateUsedCards(category)
+    updateDestinationVisibility()
+    
+    setTimeout(() => initSortable(), 100)
+    updateSliderActiveState(category)
+}
+
+function renderRowFromState(category, sourceId) {
+    const row = document.querySelector(`.mapping-row[data-source="${sourceId}"][data-category="${category}"]`)
+    if (!row) return
+
+    const state = mappingState[category]?.[sourceId]
+    if (!state) return
+    
+    const destAccounts = getDestAccountsByCategory(category)
+
+    row.querySelectorAll(".slot-cell").forEach(cell => {
+        const slot = cell.dataset.slot
+        cell.innerHTML = ""
+        const destNumber = state[slot]
+        if (!destNumber) return
+
+        const destAcc = destAccounts.find(a => a.number == destNumber)
+        if (!destAcc) return
+        
+        const dropped = document.createElement("div")
+        dropped.className = "dropped-card bg-white p-2 border rounded text-truncate"
+        dropped.innerHTML = `<b>${destAcc.number}</b> — ${destAcc.name}`
+        dropped.title = `${destAcc.number} — ${destAcc.name} (Click to remove)`
+        dropped.style.cursor = 'pointer'
+        
+        dropped.addEventListener('click', () => {
+            state[slot] = null
+            renderRowFromState(category, sourceId)
+            updateUsedCards(category)
+            updateDestinationVisibility()
+        })
+        cell.appendChild(dropped)
+    })
+}
+
+function initSortable() {
+    const destList = document.getElementById("a-accountContainer")
+    if (!destList) return
+    
+    if (destList.sortableInstance) {
+        destList.sortableInstance.destroy()
+    }
+    
+    if (typeof Sortable !== 'undefined') {
+        destList.sortableInstance = new Sortable(destList, {
+            group: { name: 'accounts', pull: 'clone', put: false },
+            animation: 150,
+            sort: false,
+            onEnd: () => updateDestinationVisibility()
+        })
+    }
+    
     document.querySelectorAll(".slot-cell").forEach(cell => {
-  
-        cell.addEventListener("dragover", (e) => {
-            e.preventDefault()
-            e.dataTransfer.dropEffect = "copy"
-            cell.classList.add("drag-over")
-        })
-  
-        cell.addEventListener("dragleave", () => {
-            cell.classList.remove("drag-over")
-        })
-  
-        cell.addEventListener("drop", (e) => {
-            e.preventDefault()
-            cell.classList.remove("drag-over")
-  
-            const destNumber = e.dataTransfer.getData("text/plain")
-            const sourceRow = cell.closest(".mapping-row")
-            const sourceId = sourceRow.dataset.source
-            const slot = cell.dataset.slot
-  
-            handleDrop(sourceId, slot, destNumber)
+        if (cell.sortableInstance) cell.sortableInstance.destroy()
+        
+        cell.sortableInstance = new Sortable(cell, {
+            group: { name: 'accounts', pull: false, put: true },
+            animation: 150,
+            
+            onAdd: function(evt) {
+                const item = evt.item
+                const destNumber = item.dataset.number
+                const sourceRow = evt.to.closest(".mapping-row")
+                const sourceId = sourceRow.dataset.source
+                const category = sourceRow.dataset.category
+                const slot = evt.to.dataset.slot
+                
+                item.remove()
+                handleDropSortable(category, sourceId, slot, destNumber)
+            }
         })
     })
 }
-  function handleDrop(sourceId, slot, destNumber) {
-    const state = mappingState[sourceId]
-    if (state.mostLikely == destNumber ||
-        state.likely == destNumber ||
-        state.possible == destNumber) {
-      return
+
+function handleDropSortable(category, sourceId, slot, destNumber) {
+    if (!mappingState[category]) mappingState[category] = {}
+    if (!mappingState[category][sourceId]) {
+        mappingState[category][sourceId] = {
+            mostLikely: null,
+            likely: null,
+            possible: null
+        }
     }
-  
+    
+    const state = mappingState[category][sourceId]
+
+    if (state.mostLikely == destNumber || state.likely == destNumber || state.possible == destNumber) { return }
+
     if (slot === "mostLikely") {
-      state.possible = state.likely
-      state.likely = state.mostLikely
-      state.mostLikely = destNumber
+        state.possible = state.likely
+        state.likely = state.mostLikely
+        state.mostLikely = destNumber
     } else if (slot === "likely") {
-      state.possible = state.likely
-      state.likely = destNumber
+        state.possible = state.likely
+        state.likely = destNumber
     } else if (slot === "possible") {
-      state.possible = destNumber
+        state.possible = destNumber
     }
-  
-    renderRowFromState(sourceId)
-  }
-  
+
+    renderRowFromState(category, sourceId)
+    updateUsedCards(category)
+    updateDestinationVisibility()
+}
 
 function setupDestinationFilter() {
     const search = document.getElementById("search")
     const list = document.getElementById("a-accountContainer")
     const buttons = document.querySelectorAll(".nav-item-link")
-  
+
     let currentType = "all"
-  
+
     function applyFilter() {
         const text = search.value.toLowerCase()
-        const normalize = s => (s || "").replace(/[^a-z0-9]/g,"")
-      
+        const normalize = s => (s || "").replace(/[^a-z0-9]/g, "")
+
         list.querySelectorAll(".account-card").forEach(card => {
-            const matchText =
-                card.dataset.name.includes(text) ||
-                card.dataset.number.includes(text)
-      
-            const matchType =
-                currentType === "all" ||
-                normalize(card.dataset.type) === normalize(currentType)
-      
+            const cardNumber = String(card.dataset.number)
+            
+            if (usedCards.has(cardNumber)) {
+                card.style.display = 'none'
+                return
+            }
+            
+            const matchText = card.dataset.name.includes(text) || card.dataset.number.includes(text)
+            const matchType = currentType === "all" || normalize(card.dataset.type) === normalize(currentType)
+
             card.style.display = (matchText && matchType) ? "" : "none"
         })
     }
-  
+
     search.addEventListener("input", applyFilter)
-  
+
     buttons.forEach(btn => {
         btn.addEventListener("click", (e) => {
             e.preventDefault()
-            
             buttons.forEach(b => b.classList.remove("active"))
             btn.classList.add("active")
-  
             currentType = btn.dataset.type
             applyFilter()
         })
@@ -341,133 +413,128 @@ function setupDestinationFilter() {
     const slider = document.getElementById('navSlider')
     const leftArrow = document.getElementById('slideLeft')
     const rightArrow = document.getElementById('slideRight')
- 
+
     if (leftArrow && rightArrow && slider) {
         leftArrow.onclick = () => { slider.scrollLeft -= 200 }
         rightArrow.onclick = () => { slider.scrollLeft += 200 }
     }
-} 
-
-function shiftRight(row, startIndex) {
-
-  const order = ["mostLikely", "likely", "possible"]
-
-  for (let i = order.length - 1; i > startIndex; i--) {
-
-    const current = row.querySelector("." + order[i])
-    const previous = row.querySelector("." + order[i - 1])
-
-    if (previous.children.length > 0) {
-
-      const moving = previous.children[0]
-
-      if (current.children.length > 0) {
-        current.innerHTML = ""   
-      }
-
-      current.appendChild(moving)
-    }
-  }
 }
 
-function initSortable() {
-
-  const group = {
-    name: "accounts",
-    pull: true,
-    put: true
-  }
-  new Sortable(document.getElementById("destinationList"), {
-    group,
-    animation: 150
-  })
-
-  document.querySelectorAll(".drop-cell").forEach(cell => {
-
-    new Sortable(cell, {
-      group,
-      animation: 150,
-
-      onAdd: function(evt) {
-
-        const row = evt.to.closest(".mapping-row")
-        const cells = [
-          row.querySelector(".mostLikely"),
-          row.querySelector(".likely"),
-          row.querySelector(".possible")
-        ]
-
-        const index = cells.indexOf(evt.to)
-
-        shiftRight(cells, index)
-      }
+function updateSliderActiveState(category) {
+    const buttons = document.querySelectorAll(".nav-item-link")
+    buttons.forEach(btn => {
+        const normalize = s => (s || "").replace(/[^a-z0-9]/g, "")
+        if (normalize(btn.dataset.type) === normalize(category)) {
+            buttons.forEach(b => b.classList.remove("active"))
+            btn.classList.add("active")
+        }
     })
-  })
 }
 
-function shiftRight(cells, startIndex) {
+function setupCategoryNavigation() {
+    const navButtons = document.querySelectorAll(".nav-btn")
+    
+    navButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const category = btn.dataset.page
+            navButtons.forEach(b => {
+                b.classList.remove("btn-primary")
+                b.classList.add("btn-secondary")
+            })
+            btn.classList.remove("btn-secondary")
+            btn.classList.add("btn-primary")
+            renderPage(category)
+        })
+    })
+}
 
-  for (let i = cells.length - 1; i > startIndex; i--) {
+function saveAllMappings() {
+    localStorage.setItem("savedMappings", JSON.stringify(mappingState))
+    alert("Mappings saved successfully!")
+}
 
-    const prev = cells[i - 1].firstElementChild
-
-    if (prev) {
-      cells[i].innerHTML = ""
-      cells[i].appendChild(prev)
+function loadSavedMappings() {
+    const saved = localStorage.getItem("savedMappings")
+    if (saved) {
+        Object.assign(mappingState, JSON.parse(saved))
+        console.log("Loaded saved mappings")
     }
-  }
-
-  const current = cells[startIndex]
-
-  if (current.children.length > 1) {
-    current.removeChild(current.firstElementChild)
-  }
 }
 
+function setupSubmitButton() {
+    const submitBtn = document.querySelector(".btn-success")
+    if (submitBtn) submitBtn.addEventListener("click", saveAllMappings)
+}
+
+function setupDeleteButton() {
+    const deleteBtn = document.querySelector(".btn-danger")
+    if (deleteBtn) {
+        deleteBtn.addEventListener("click", () => {
+            if (confirm("Clear all data?")) {
+                localStorage.removeItem("savedMappings")
+                location.reload()
+            }
+        })
+    }
+}
+
+function debugAllTypes() {
+    const master = JSON.parse(localStorage.getItem("masterSheetData"))
+    const destination = JSON.parse(localStorage.getItem("destinationSheetData"))
+    
+    if (master) {
+        const masterSheet = Object.values(master)[0]
+        console.log("MASTER TYPES:", Object.keys(masterSheet))
+    }
+    
+    if (destination) {
+        const destSheet = Object.values(destination)[0]
+        console.log("DESTINATION TYPES:", Object.keys(destSheet))
+    }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
-
-  let pending = 0
-
-  function finished() {
-    pending--
-    if (pending === 0) {
-      populateLists()
-      setupDestinationFilter()
-    populateLists()
-    setupDestinationFilter()
-    initDragDrop()
-
+    let pending = 0
+    function finished() {
+        pending--
+        if (pending === 0) {
+            debugAllTypes()
+            loadSavedMappings()
+            setupCategoryNavigation()
+            setupDestinationFilter()
+            setupSubmitButton()
+            setupDeleteButton()
+            renderPage('assets')
+        }
     }
-  }
 
-  if (!localStorage.getItem("masterSheetData")) {
-    pending++
-    fetchExcel(
-      "Resources/Master Chart of account.xlsx",
-      "masterSheetData",
-      convertToNested,
-      finished
-    )
-  }
+    if (!localStorage.getItem("masterSheetData")) {
+        pending++
+        fetchExcel(
+            "Resources/Master Chart of account.xlsx",
+            "masterSheetData",
+            convertToNested,
+            finished
+        )
+    }
 
-  if (!localStorage.getItem("destinationSheetData")) {
-    pending++
-    fetchExcel(
-      "Resources/destination chart of account.xlsx",
-      "destinationSheetData",
-      convertDestinationToNested,
-      finished
-    )
-  }
+    if (!localStorage.getItem("destinationSheetData")) {
+        pending++
+        fetchExcel(
+            "Resources/destination chart of account.xlsx",
+            "destinationSheetData",
+            convertDestinationToNested,
+            finished
+        )
+    }
 
-  if (pending === 0) {
-    populateLists()
-    setupDestinationFilter()    
-    // initSortable()
-    populateLists()
-    setupDestinationFilter()
-    initDragDrop()
-
-  }
+    if (pending === 0) {
+        debugAllTypes()
+        loadSavedMappings()
+        setupCategoryNavigation()
+        setupDestinationFilter()
+        setupSubmitButton()
+        setupDeleteButton()
+        renderPage('assets')
+    }
 })

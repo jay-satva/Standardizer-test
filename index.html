@@ -68,21 +68,23 @@
       <section>
         <div class="container-fluid">
             <div class="row">
-                <div class="col-9">
+                <div class="col-8">
                     <div class="mt-2">
                         <button class="nav-btn m-1 btn btn-primary" data-page="assets">Assets</button>
-                        <button class="nav-btn m-1 btn btn-secondary" data-page="liability">Liability</button>
+                        <button class="nav-btn m-1 btn btn-secondary" data-page="liabilities">Liability</button>
                         <button class="nav-btn m-1 btn btn-secondary" data-page="equity">Equity/Capital</button>
                         <button class="nav-btn m-1 btn btn-secondary" data-page="revenue">Revenue</button>
                         <button class="nav-btn m-1 btn btn-secondary" data-page="cogs">CoGS</button>
-                        <button class="nav-btn m-1 btn btn-secondary" data-page="g&a">G&A Expenses</button>
-                        <button class="nav-btn m-1 btn btn-secondary" data-page="other">Other Revenue and Expense</button>
+                        <button class="nav-btn m-1 btn btn-secondary" data-page="expense">G&A Expenses</button>
+                        <button class="nav-btn m-1 btn btn-secondary" data-page="other rev and exp">Other Revenue and Expense</button>
                     </div>
                 </div>
-                <div class="col-1 offset-2">
+                <div class="col-3 offset-1 text-end">
                     <div class="mt-2">
                         <button class="btn btn-success m-1 px-3">Submit</button>
+                        <button class="btn btn-danger m-1 px-3">Delete Data</button>
                     </div>
+                    
                 </div>
                 <small class="text-end">Last Updated on Jan 12</small>
             </div>
@@ -111,19 +113,19 @@
                         </div>
                     </div>
                     <div class="col-3">
-                        <div class="bg-primary text-left text-white p-3 rounded-3">
+                        <div class="text-left text-white p-3 rounded-3" style="background-color: rgb(6, 160, 160);">
                             Most Likely
                         </div>
                     </div>
                     <div class="col-3">
                       <!-- <h6>Source Account Structure</h6> -->
-                        <div class="bg-primary text-left text-white p-3 rounded-3">
+                        <div class="text-left text-white p-3 rounded-3" style="background-color: rgb(37, 203, 203);">
                             Likely
                         </div>
                     </div>
                     <div class="col-3">
                       <!-- <h6>Source Account Structure</h6> -->
-                        <div class="bg-primary text-left text-white p-3 rounded-3">
+                        <div class="text-left text-white p-3 rounded-3" style="background-color: rgb(129, 230, 230);">
                             Possible
                         </div>
                     </div>
@@ -140,12 +142,12 @@
               <div class="nav-slider" id="navSlider">
                   <a href="#" class="nav-item-link active" data-type="all">All</a>
                   <a href="#" class="nav-item-link" data-type="assets">Assets</a>
-                  <a href="#" class="nav-item-link" data-type="liability">Liability</a>
-                  <a href="#" class="nav-item-link" data-type="capital">Equity/Capital</a>
+                  <a href="#" class="nav-item-link" data-type="liabilities">Liability</a>
+                  <a href="#" class="nav-item-link" data-type="equity">Equity/Capital</a>
                   <a href="#" class="nav-item-link" data-type="revenue">Revenue</a>
                   <a href="#" class="nav-item-link" data-type="cogs">CoGS</a>
-                  <a href="#" class="nav-item-link" data-type="ga">G&A Expenses</a>
-                  <a href="#" class="nav-item-link" data-type="other">Other Revenue</a>
+                  <a href="#" class="nav-item-link" data-type="expense">G&A Expenses</a>
+                  <a href="#" class="nav-item-link" data-type="other rev and exp">Other Revenue</a>
               </div>
          
               <i class="bi bi-chevron-right slider-arrow" id="slideRight"></i>
